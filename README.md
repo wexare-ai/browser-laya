@@ -104,20 +104,23 @@ for one runs on the other.
 
 ## Measured behaviour
 
-Apple M4, Chrome, single 65-token question, median of several runs:
+Apple M4, Chrome, median of several runs:
 
 | Run | Backend | Total | Per question |
 | --- | --- | --- | --- |
-| 1 question, 65 tokens | WebGPU | ~715 ms | ~715 ms |
-| 5 questions, 492 tokens | WebGPU | ~1 060 ms | ~210 ms |
-| 1 question, 65 tokens | WebAssembly | ~2 900 ms | ~2 900 ms |
+| 1 question, 65 tokens | WebGPU | ~125 ms | ~125 ms |
+| 5 questions, 492 tokens | WebGPU | ~1 060 ms* | ~210 ms* |
+| 1 question, 65 tokens | WebAssembly | ~2 900 ms* | ~2 900 ms* |
 
-Batching pays: asking five questions at once costs about a third more than asking one, because
-they share a single forward pass. That is the same property the Python library has.
+\* From an earlier round of measurements, taken before the ~125 ms single-question figure. They
+have not been re-run since, so they are likely pessimistic.
 
-All of these are far off the ~35 ms the model does on a server GPU. The gap is the browser
-runtime, not the model: WebGPU has to run the graph with only basic optimisation (see below), and
-every operator dispatch crosses the JavaScript boundary.
+All five questions share a single forward pass, which is the same property the Python library
+has. A batched request is one `predict()` call, not five.
+
+A single question at ~125 ms is within about 3.5× of the ~35 ms the model does on a server GPU.
+The remaining gap is the browser runtime, not the model: WebGPU has to run the graph with only
+basic optimisation (see below), and every operator dispatch crosses the JavaScript boundary.
 
 ## Accuracy
 
