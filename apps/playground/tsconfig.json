@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@wexare/laya-web": ["../../packages/laya-web/src/index.ts"],
+      "@wexare/laya-web/worker": ["../../packages/laya-web/src/worker.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

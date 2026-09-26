@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+tools/.venv/
+packages/laya-web/test/fixtures/*.local.json
+packages/laya-web/test/.model-cache/
+packages/laya-web/test/.tokenizer-cache/
