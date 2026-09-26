@@ -18,14 +18,17 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "LICENSE",
+    "LICENSE-THIRD-PARTY"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "LAYA_E2E=1 vitest run"
+    "test:e2e": "LAYA_E2E=1 vitest run",
+    "prepack": "cp ../../LICENSE ../../LICENSE-THIRD-PARTY ."
   },
   "dependencies": {
     "@huggingface/tokenizers": "^0.2.0",

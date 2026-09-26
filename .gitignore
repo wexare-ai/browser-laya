@@ -6,3 +6,5 @@ tools/.venv/
 packages/laya-web/test/fixtures/*.local.json
 packages/laya-web/test/.model-cache/
 packages/laya-web/test/.tokenizer-cache/
+packages/laya-web/LICENSE
+packages/laya-web/LICENSE-THIRD-PARTY

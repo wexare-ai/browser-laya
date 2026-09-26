@@ -1,6 +1,10 @@
 /**
  * Ready-made question sets, ported from `laya/presets.py` in the reference implementation,
  * plus the returns-desk example this project was built around.
+ *
+ * Modified from NandhaKishorM/laya (Apache 2.0): translated to TypeScript, only the triage,
+ * email and guard sets kept, functions turned into static objects with example states, and
+ * the returns preset added. See LICENSE-THIRD-PARTY.
  */
 import type { Question } from "./types.js";
 
