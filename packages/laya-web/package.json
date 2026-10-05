@@ -51,5 +51,14 @@
     "classification",
     "browser",
     "ai"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wexare-ai/browser-laya.git",
+    "directory": "packages/laya-web"
+  },
+  "homepage": "https://github.com/wexare-ai/browser-laya#readme",
+  "bugs": {
+    "url": "https://github.com/wexare-ai/browser-laya/issues"
+  }
 }
