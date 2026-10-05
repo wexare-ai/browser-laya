@@ -19,9 +19,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4 # version comes from "packageManager" in package.json
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -45,13 +45,14 @@ jobs:
       run:
         working-directory: packages/laya-web
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      # no dependency cache in the release job (cache-poisoning guard), and no registry-url:
+      # trusted publishing authenticates through OIDC, not an .npmrc token
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       # trusted publishing needs npm 11.5.1 or newer
       - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
