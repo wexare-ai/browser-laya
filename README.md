@@ -1,5 +1,9 @@
 # Laya in the browser
 
+[![npm](https://img.shields.io/npm/v/@wexare/laya-web)](https://www.npmjs.com/package/@wexare/laya-web)
+[![CI](https://github.com/wexare-ai/browser-laya/actions/workflows/publish.yml/badge.svg)](https://github.com/wexare-ai/browser-laya/actions/workflows/publish.yml)
+[![licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+
 [Laya](https://github.com/NandhaKishorM/laya) is a non-autoregressive "System 1" decision model:
 you give it a **state** and typed **questions**, and it scores every option in a single forward
 pass. It never generates text, so there is no output to parse.
@@ -49,6 +53,18 @@ fast connection; after that the Cache API serves them and the model is ready in 
 Add `?device=wasm` to force the CPU backend, or `?bundle=<id>` to pick a specific export.
 
 ## Use the library
+
+Install it from npm:
+
+```sh
+npm install @wexare/laya-web
+# or: pnpm add @wexare/laya-web
+# or: yarn add @wexare/laya-web
+```
+
+It works with any bundler that supports ES modules and `new Worker(new URL(...))`. If you use the
+Vite dev server, add `optimizeDeps: { exclude: ["onnxruntime-web"] }` to your Vite config; see
+the [package README](packages/laya-web/README.md) for this and the other setup notes.
 
 ```ts
 import { Laya } from "@wexare/laya-web";
