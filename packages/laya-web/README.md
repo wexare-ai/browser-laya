@@ -10,6 +10,8 @@ and nothing leaves the page once the weights are cached.
 npm i @wexare/laya-web
 ```
 
+Try it first in the hosted playground: **https://wexare-ai.github.io/browser-laya/**
+
 ## Quick start
 
 Run the model in a Web Worker so the page stays responsive. The worker file is one line:
@@ -66,8 +68,9 @@ match the Python library's `agent.predict`, so a payload written for one runs on
 
 ## Things to know
 
-- **The first load downloads 846 MB** of weights from Hugging Face
-  ([`sevenreasons/laya-onnx-fp16`](https://huggingface.co/sevenreasons/laya-onnx-fp16)). They are
+- **The first load downloads 900 MB** of weights from Hugging Face
+  ([`wexare/laya-onnx`](https://huggingface.co/wexare/laya-onnx), our ONNX export of Convai
+  Innovations' checkpoint). They are
   stored with the Cache API, so later loads take a few seconds. `clearCache()` removes them.
 - **Backend:** WebGPU is used when available, otherwise WebAssembly (much slower). If WebGPU
   creates a session but cannot run the model, loading falls back to WebAssembly on its own, and

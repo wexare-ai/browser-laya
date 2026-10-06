@@ -2,7 +2,7 @@
  * End-to-end check: run the real ONNX bundle through the library's own code path and compare
  * every answer against the reference Python implementation's output.
  *
- * Opt-in, because it needs the ~846 MB fp16 bundle on disk:
+ * Opt-in, because it needs the ~900 MB fp16 bundle on disk:
  *
  *   LAYA_E2E=1 LAYA_MODEL=/path/to/laya_fp16.onnx pnpm test
  *
@@ -154,7 +154,8 @@ describe.skipIf(!RUN)("end-to-end against the Python reference answers", () => {
     const bundle = BUNDLES["laya-en-fp16"]!;
     const modelPath =
       process.env.LAYA_MODEL ??
-      (await cachedFile(bundle.url, "laya_fp16.onnx"));
+      // keyed by bundle and size, so a re-export never silently tests a stale cached file
+      (await cachedFile(bundle.url, `${bundle.id}-${bundle.bytes}.onnx`));
     const [tokenizerJson, tokenizerConfig] = await Promise.all([
       cachedJson(bundle.tokenizerUrl, "tokenizer.json"),
       cachedJson(bundle.tokenizerConfigUrl, "tokenizer_config.json"),

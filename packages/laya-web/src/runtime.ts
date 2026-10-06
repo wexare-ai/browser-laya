@@ -85,7 +85,7 @@ export async function createSession(
  * Resolve which graph outputs carry the logits and the act head.
  *
  * Community exports disagree on naming: receptron emits `logits` / `act_probs`,
- * sevenreasons emits `logits` / `act_logits`, and the Mattepiu int8 build emits a
+ * weXare's export emits `logits` / `act_logits`, and the Mattepiu int8 build emits a
  * compiler-generated name for the act head. Match by name, then fall back to position.
  */
 export function resolveIO(session: ort.InferenceSession): SessionIO {

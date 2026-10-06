@@ -11,6 +11,9 @@ pass. It never generates text, so there is no output to parse.
 This repository runs that model **entirely in a browser tab** — no server, no API key, no request
 leaving the page after the weights are cached.
 
+**[Try it in your browser →](https://wexare-ai.github.io/browser-laya/)** (a 900 MB download the
+first time; WebGPU recommended)
+
 ```json
 {
   "state": "My running shoes arrived in the wrong size. Can I swap them for a size 10?",
@@ -39,15 +42,20 @@ department → returns    returns .895   shipping .080   billing .025   confiden
 | `packages/laya-web` | `@wexare/laya-web`, the library: tokenizer, sequence builder, ONNX Runtime Web session, decoding |
 | `apps/playground` | A Vite page to paste a state and questions into and watch the distribution come back |
 | `tools/gen_fixtures.py` | Generates golden fixtures by running the reference Python `laya` package |
+| `tools/export_onnx.py` | Builds the default ONNX bundle from `convaiinnovations/laya` and checks it against PyTorch |
 
 ## Run the playground
+
+The playground is hosted at **https://wexare-ai.github.io/browser-laya/**. GitHub Pages cannot send
+the COOP/COEP headers that multi-threaded WebAssembly needs, so there WebGPU runs normally and the
+WebAssembly fallback runs single-threaded. To run it locally, with those headers:
 
 ```sh
 pnpm install
 pnpm dev          # http://localhost:5173
 ```
 
-Click **Load model**. The first load downloads 846 MB of weights and takes about 20 seconds on a
+Click **Load model**. The first load downloads 900 MB of weights and takes about 20 seconds on a
 fast connection; after that the Cache API serves them and the model is ready in 2–3 seconds.
 
 Add `?device=wasm` to force the CPU backend, or `?bundle=<id>` to pick a specific export.
@@ -120,7 +128,9 @@ for one runs on the other.
 
 ## Measured behaviour
 
-Apple M4, Chrome, median of several runs:
+Apple M4, Chrome, median of several runs. These were measured with the earlier fp16 export of the
+same checkpoint; the current bundle (`wexare/laya-onnx`) has the same fp16 encoder plus an fp32
+decision head, and its timings have not been re-measured yet.
 
 | Run | Backend | Total | Per question |
 | --- | --- | --- | --- |
@@ -155,7 +165,7 @@ pnpm test                                     # tokenisation parity, ~0.3s, offl
 pnpm --filter @wexare/laya-web test:e2e       # adds the end-to-end run against the real weights
 ```
 
-The end-to-end run needs the 846 MB bundle. It downloads once to
+The end-to-end run needs the 900 MB bundle. It downloads once to
 `packages/laya-web/test/.model-cache/`, or set `LAYA_MODEL=/path/to/model.onnx` to point at a copy
 you already have.
 
@@ -169,13 +179,15 @@ tools/.venv/bin/python tools/gen_fixtures.py
 
 ## Weights
 
-The library does not export the model itself; it loads community ONNX exports of
-[`convaiinnovations/laya`](https://huggingface.co/convaiinnovations/laya), the 421M-parameter
-English checkpoint (ModernBERT-large encoder plus Laya's decision head).
+The library loads ONNX exports of [`convaiinnovations/laya`](https://huggingface.co/convaiinnovations/laya),
+the 421M-parameter English checkpoint (ModernBERT-large encoder plus Laya's decision head). The
+default bundle is our own export, built by `tools/export_onnx.py` and hosted at
+[`wexare/laya-onnx`](https://huggingface.co/wexare/laya-onnx) together with a mirror of the
+tokenizer and calibration config, so the library depends on one repository we control.
 
 | Bundle id | Source | Size | Backends | Option limit |
 | --- | --- | --- | --- | --- |
-| `laya-en-fp16` | [`sevenreasons/laya-onnx-fp16`](https://huggingface.co/sevenreasons/laya-onnx-fp16) | 846 MB | WebGPU, WASM | none |
+| `laya-en-fp16` | [`wexare/laya-onnx`](https://huggingface.co/wexare/laya-onnx) | 900 MB | WebGPU, WASM | none |
 | `laya-en-int8-2opt` | [`Mattepiu/laya-onnx`](https://huggingface.co/Mattepiu/laya-onnx) | 581 MB | WASM only | **2** |
 
 `laya-en-fp16` is the default on both backends. The int8 export is registered for completeness but
@@ -183,9 +195,22 @@ is not usable for most questions: its export froze the option axis at 2, so it c
 yes/no questions and two-way choices. The library refuses larger questions on it with a message
 saying so rather than returning a wrong answer.
 
+To rebuild the default bundle from the checkpoint:
+
+```sh
+uv pip install -p tools/.venv/bin/python laya onnx onnxscript onnxruntime
+tools/.venv/bin/python tools/export_onnx.py      # writes tools/out/laya_fp16.onnx
+```
+
+The script exports with dynamic batch, sequence and option axes, runs the encoder in fp16 with its
+LayerNorms and the decision head in fp32, and stops if any fixture's decision differs from
+PyTorch. The current file differs from the PyTorch fp32 model by at most 0.00068 in probability,
+passes the end-to-end parity suite on onnxruntime-web (WebAssembly), and has been checked by hand
+on WebGPU in Chrome.
+
 ## Things worth knowing before you rely on this
 
-- **First load is 846 MB.** It is cached afterwards, and the page asks for persistent storage, but
+- **First load is 900 MB.** It is cached afterwards, and the page asks for persistent storage, but
   a browser under storage pressure can still evict it.
 - **WebGPU runs with basic graph optimisation only.** Skip Layer Normalization fusion is an
   extended-level optimisation, and its WebGPU kernel rejects ModernBERT's bias-free layer norms
@@ -214,8 +239,8 @@ outputs  logits [B,K], and optionally the act head [B,2]
 ```
 
 Exporting a smaller 4-bit bundle, or the multilingual checkpoint, is the obvious next step:
-adapt [`receptron/laya`](https://github.com/receptron/laya)'s `export/export_onnx.py`, then
-quantise with `onnxruntime.quantization.matmul_nbits_quantizer`.
+start from `tools/export_onnx.py`, then quantise with
+`onnxruntime.quantization.matmul_nbits_quantizer`.
 
 ## Licences
 

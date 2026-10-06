@@ -1,0 +1,52 @@
+# Deploy the playground to GitHub Pages: https://wexare-ai.github.io/browser-laya/
+#
+# Pages cannot set COOP/COEP headers, so the page is not cross-origin isolated there: WebGPU runs
+# normally, and the WebAssembly fallback runs single-threaded.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/playground/**
+      - packages/laya-web/src/**
+      - pnpm-lock.yaml
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # project pages live under /<repo>/, so every asset URL needs that prefix
+      - run: pnpm --filter playground exec vite build --base=/${{ github.event.repository.name }}/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/playground/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

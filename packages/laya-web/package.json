@@ -1,6 +1,6 @@
 {
   "name": "@wexare/laya-web",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Run Laya, the open-source System 1 typed-decision model, entirely in the browser via ONNX Runtime Web",
   "license": "MIT",
   "type": "module",

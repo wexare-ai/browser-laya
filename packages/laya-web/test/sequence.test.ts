@@ -51,9 +51,9 @@ const fixtures = JSON.parse(
  * after the first run.
  */
 const TOKENIZER_URL =
-  "https://huggingface.co/convaiinnovations/laya/resolve/main/tokenizer/tokenizer.json";
+  "https://huggingface.co/wexare/laya-onnx/resolve/main/tokenizer/tokenizer.json";
 const TOKENIZER_CONFIG_URL =
-  "https://huggingface.co/convaiinnovations/laya/resolve/main/tokenizer/tokenizer_config.json";
+  "https://huggingface.co/wexare/laya-onnx/resolve/main/tokenizer/tokenizer_config.json";
 const CACHE_DIR = join(here, ".tokenizer-cache");
 
 async function cachedJson(url: string, name: string): Promise<object> {

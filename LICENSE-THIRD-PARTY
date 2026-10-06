@@ -25,9 +25,12 @@ DEALINGS IN THE SOFTWARE.
 
 Model weights
 -------------
-convaiinnovations/laya and its ONNX exports (sevenreasons/laya-onnx-fp16,
-Mattepiu/laya-onnx) are licensed Apache 2.0 by Convai Innovations. They are downloaded at
-run time and are not redistributed by this repository.
+convaiinnovations/laya (weights, tokenizer and calibration config) is licensed Apache 2.0
+by Convai Innovations. The default bundle, wexare/laya-onnx, is weXare's ONNX export of it
+(produced by tools/export_onnx.py: converted to ONNX, with the encoder cast to fp16) plus
+unchanged copies of the tokenizer and config, published under the same licence with
+attribution. The optional int8 bundle is Mattepiu/laya-onnx, also Apache 2.0. Weights are
+downloaded at run time and are not part of this repository or the npm package.
 
 Question presets
 ----------------

@@ -12,3 +12,5 @@ packages/laya-web/LICENSE-THIRD-PARTY
 
 # launch video tooling (Remotion); kept locally, not part of the project
 video/
+tools/out/
+__pycache__/

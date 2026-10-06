@@ -1,8 +1,8 @@
 /**
  * The downloadable ONNX builds of Laya that this library knows how to run.
  *
- * All of them are community exports of `convaiinnovations/laya` (the English checkpoint:
- * ModernBERT-large encoder + Laya's decision head). They share a graph signature:
+ * All of them are ONNX exports of `convaiinnovations/laya` (the English checkpoint: ModernBERT-large
+ * encoder + Laya's decision head). They share a graph signature:
  *
  *   inputs : input_ids [B,L] int64, attention_mask [B,L] int64,
  *            marker_pos [B,K] int64, marker_mask [B,K] bool, qtype [B] int64
@@ -11,7 +11,8 @@
  * They do NOT share their dynamic axes, and that is a correctness constraint rather than a
  * preference:
  *
- *  - `laya-en-fp16` is dynamic in batch, sequence and option count (verified for K = 2..12).
+ *  - `laya-en-fp16` is weXare's export (tools/export_onnx.py, hosted at wexare/laya-onnx). It is
+ *    dynamic in batch, sequence and option count, and checked against the Python reference.
  *  - `laya-en-int8-2opt` froze the option axis at 2 during export, so it can only answer
  *    yes/no questions and two-way choices. It also uses MatMulInteger / DynamicQuantizeLinear,
  *    which silently return wrong numbers on onnxruntime-web's WebGPU backend as of 1.30
@@ -19,12 +20,17 @@
  */
 import type { Bundle, Device } from "./types.js";
 
-const LAYA_REPO = "https://huggingface.co/convaiinnovations/laya/resolve/main";
+/**
+ * weXare's mirror of the model, tokenizer and calibration config (Apache 2.0, from
+ * convaiinnovations/laya). Everything loads from one repo we control, so a third-party repo
+ * disappearing cannot break installs again, which is what happened to the first fp16 export.
+ */
+const WEXARE_REPO = "https://huggingface.co/wexare/laya-onnx/resolve/main";
 
 const TOKENIZER = {
-  tokenizerUrl: `${LAYA_REPO}/tokenizer/tokenizer.json`,
-  tokenizerConfigUrl: `${LAYA_REPO}/tokenizer/tokenizer_config.json`,
-  configUrl: `${LAYA_REPO}/rl_agent_config.json`,
+  tokenizerUrl: `${WEXARE_REPO}/tokenizer/tokenizer.json`,
+  tokenizerConfigUrl: `${WEXARE_REPO}/tokenizer/tokenizer_config.json`,
+  configUrl: `${WEXARE_REPO}/rl_agent_config.json`,
 };
 
 export const BUNDLES: Record<string, Bundle> = {
@@ -32,10 +38,10 @@ export const BUNDLES: Record<string, Bundle> = {
     id: "laya-en-fp16",
     label: "Laya English · fp16",
     devices: ["webgpu", "wasm"],
-    url: "https://huggingface.co/sevenreasons/laya-onnx-fp16/resolve/main/model.onnx",
-    bytes: 846_269_825,
-    precision: "fp16 (numerically sensitive ops kept fp32)",
-    source: "sevenreasons/laya-onnx-fp16",
+    url: `${WEXARE_REPO}/laya_fp16.onnx`,
+    bytes: 900_153_849,
+    precision: "fp16 encoder; LayerNorms and decision head in fp32",
+    source: "wexare/laya-onnx",
     maxOptions: null,
     ...TOKENIZER,
   },

@@ -106,8 +106,15 @@ export async function fetchBytes(
   }
 
   const res = await fetch(url, { mode: "cors", credentials: "omit" });
-  if (!res.ok)
-    throw new Error(`failed to fetch ${file}: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const host = new URL(url).host;
+    throw new Error(
+      `failed to fetch ${file} from ${host}: ${res.status} ${res.statusText}. ` +
+        (res.status === 401 || res.status === 403 || res.status === 404
+          ? "The file may have moved or been removed; update @wexare/laya-web, or pass your own bundle to Laya.load()."
+          : "Check the connection and try again."),
+    );
+  }
 
   const header =
     res.headers.get("content-length") ?? res.headers.get("x-linked-size");
@@ -148,7 +155,7 @@ export async function fetchBytes(
   }
 
   if (cache) {
-    // Hand Response the underlying buffer rather than a clone: at 846 MB that second copy is the
+    // Hand Response the underlying buffer rather than a clone: at ~900 MB that second copy is the
     // difference between fitting in a tab and not. `bytes` owns its buffer on every path here,
     // but fall back to a copy if that ever stops being true.
     const body =
