@@ -30,7 +30,7 @@ const chosenBundle = forcedBundle ?? (isPhone() ? PHONE_BUNDLE : undefined);
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
   <header class="rail">
-    <h1 class="wordmark">Laya <span>in the browser</span></h1>
+    <h1 class="wordmark">System One <span>in the browser</span></h1>
     <div class="rail-status" id="status" role="status" aria-live="polite">
       <span id="status-text">Checking this browser</span>
       <span class="gauge" id="gauge"><i></i></span>

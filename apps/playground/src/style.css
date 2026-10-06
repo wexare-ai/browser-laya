@@ -90,6 +90,7 @@ body {
 .wordmark span {
   color: var(--muted);
   font-weight: 400;
+  white-space: nowrap; /* on narrow screens break as "System One / in the browser" */
 }
 
 .rail-actions {
