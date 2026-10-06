@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Memory probe</title>
+<style>
+  :root { --paper: #eceef1; --ink: #13294b; --muted: #5d6f85; --rule: #c8d0da; --signal: #e0115f; --ok: #1a7f5a; }
+  @media (prefers-color-scheme: dark) { :root { --paper: #0e1722; --ink: #dfe7f0; --muted: #8fa1b5; --rule: #2a3a4d; --signal: #ff5b8d; --ok: #4fc49a; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 16px; }
+  button { font: inherit; font-weight: 600; padding: 12px 16px; margin: 0 8px 8px 0; border-radius: 6px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); }
+  button.quiet { background: transparent; color: var(--ink); }
+  pre { background: rgba(127,127,127,.1); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; white-space: pre-wrap; word-break: break-word; font-size: 14px; }
+  .bad { color: var(--signal); } .good { color: var(--ok); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Memory probe</h1>
+  <p>Measures how much memory this browser lets one tab use, and whether it can read the cached
+  Laya model. Each result is saved as it happens, so if the tab crashes ("Aw, Snap!"), reload this
+  page to see how far it got.</p>
+  <button id="alloc">1. Find the tab's memory limit</button>
+  <button id="read" class="quiet">2. Read the cached model</button>
+  <button id="clear" class="quiet">Clear results</button>
+  <pre id="out"></pre>
+</main>
+<script type="module">
+const KEY = "laya-memtest";
+const out = document.getElementById("out");
+const log = (line) => {
+  const all = JSON.parse(localStorage.getItem(KEY) || "[]");
+  all.push(`${new Date().toLocaleTimeString()}  ${line}`);
+  localStorage.setItem(KEY, JSON.stringify(all.slice(-200)));
+  show();
+};
+const show = () => { out.textContent = (JSON.parse(localStorage.getItem(KEY) || "[]")).join("\n") || "No results yet."; };
+show();
+const env = `${navigator.userAgent}\ndeviceMemory=${navigator.deviceMemory ?? "?"} GB, cores=${navigator.hardwareConcurrency}, webgpu=${"gpu" in navigator}`;
+
+document.getElementById("clear").onclick = () => { localStorage.removeItem(KEY); show(); };
+
+// 1. Allocate and touch 64 MB blocks until the browser refuses or the tab dies. Each step is saved
+//    before the next allocation, so the last saved line is the last size that survived.
+document.getElementById("alloc").onclick = async () => {
+  log("--- memory limit test ---");
+  log(env);
+  const blocks = [];
+  const step = 64 * 1024 * 1024;
+  try {
+    for (let i = 1; i <= 96; i++) {
+      const b = new Uint8Array(step);
+      b.fill(i & 255); // touch every page so it is really committed
+      blocks.push(b);
+      log(`holding ${(i * 64).toLocaleString()} MB`);
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    log("reached 6 GB without failing; stopping");
+  } catch (e) {
+    log(`allocation refused at ${(blocks.length + 1) * 64} MB: ${e}`);
+  }
+  blocks.length = 0;
+};
+
+// 2. Read the model the playground cached, two ways, recording each stage.
+document.getElementById("read").onclick = async () => {
+  log("--- cached model read test ---");
+  const cache = await caches.open("laya-web-v1");
+  const keys = (await cache.keys()).map((r) => r.url).filter((u) => u.endsWith(".onnx"));
+  if (!keys.length) return log("no cached model: load one in the playground first");
+  const url = keys.find((u) => u.includes("q8")) ?? keys[0];
+  log(`cached: ${url.split("/").pop()}`);
+
+  // a) stream into one buffer of the right size: one copy of the file at most
+  try {
+    const res = await cache.match(url);
+    const len = Number(res.headers.get("content-length")) || 0;
+    log(`a) streaming into one ${Math.round(len / 1e6)} MB buffer...`);
+    const t = performance.now();
+    const buf = new Uint8Array(len);
+    let off = 0;
+    const reader = res.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf.set(value, off);
+      off += value.byteLength;
+    }
+    log(`a) OK: ${Math.round(off / 1e6)} MB in ${Math.round(performance.now() - t)} ms`);
+  } catch (e) {
+    log(`a) failed: ${e}`);
+  }
+  await new Promise((r) => setTimeout(r, 1500)); // let the first buffer be collected
+
+  // b) response.arrayBuffer(), as @wexare/laya-web 0.1.1 does
+  try {
+    log("b) response.arrayBuffer()...");
+    const t = performance.now();
+    const ab = await (await cache.match(url)).arrayBuffer();
+    log(`b) OK: ${Math.round(ab.byteLength / 1e6)} MB in ${Math.round(performance.now() - t)} ms`);
+  } catch (e) {
+    log(`b) failed: ${e}`);
+  }
+  log("--- done ---");
+};
+</script>
+</body>
+</html>
