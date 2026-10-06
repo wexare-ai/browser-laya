@@ -100,41 +100,23 @@ export class Laya {
    */
   static async load(opts: LayaOptions = {}): Promise<Laya> {
     const started = performance.now();
-    const device = await pickDevice(opts.device);
-
-    try {
-      return await Laya.open(opts, device, started);
-    } catch (err) {
-      const canFallBack = !opts.device && device === "webgpu";
-      if (!canFallBack) throw err;
-      const reason = err instanceof Error ? err.message : String(err);
-      opts.onProgress?.({
-        phase: "session",
-        message: "WebGPU could not run this model, falling back to WebAssembly",
-      });
-      const laya = await Laya.open(opts, "wasm", started);
-      laya.info.fellBackFrom = { device: "webgpu", reason };
-      return laya;
-    }
-  }
-
-  private static async open(
-    opts: LayaOptions,
-    device: Device,
-    started: number,
-  ): Promise<Laya> {
+    let device = await pickDevice(opts.device);
     const bundle = resolveBundle(opts.bundle, device);
 
     if (!bundle.devices.includes(device)) {
-      throw new Error(
-        `bundle ${bundle.id} only produces correct results on ${bundle.devices.join(" / ")}, ` +
-          `but the session is on ${device}. Pass device: "${bundle.devices[0]}" or pick another bundle.`,
-      );
+      if (opts.device) {
+        throw new Error(
+          `bundle ${bundle.id} only produces correct results on ${bundle.devices.join(" / ")}, ` +
+            `but the session is on ${device}. Pass device: "${bundle.devices[0]}" or pick another bundle.`,
+        );
+      }
+      // The caller let us choose: go straight to a backend the bundle runs on, instead of
+      // attempting one we know will fail and paying for a second load.
+      device = bundle.devices[0]!;
     }
 
     await requestPersistentStorage();
     const wasCached = await isCached(bundle.url);
-
     const config = await fetchJson<LayaConfig>(
       bundle.configUrl,
       opts.onProgress,
@@ -145,12 +127,45 @@ export class Laya {
       bundle.tokenizerConfigUrl,
       opts.onProgress,
     );
-
+    // Fetched once and shared with the fallback below: reading a several-hundred-MB file a second
+    // time while the first copy is still alive is what closes a phone tab.
     const weights = await fetchBytes(bundle.url, {
       phase: "weights",
       expectedBytes: bundle.bytes,
       onProgress: opts.onProgress,
     });
+    const loaded = { bundle, config, tok, weights, wasCached };
+
+    try {
+      return await Laya.open(opts, loaded, device, started);
+    } catch (err) {
+      const canFallBack =
+        !opts.device && device === "webgpu" && bundle.devices.includes("wasm");
+      if (!canFallBack) throw err;
+      const reason = err instanceof Error ? err.message : String(err);
+      opts.onProgress?.({
+        phase: "session",
+        message: "WebGPU could not run this model, falling back to WebAssembly",
+      });
+      const laya = await Laya.open(opts, loaded, "wasm", started);
+      laya.info.fellBackFrom = { device: "webgpu", reason };
+      return laya;
+    }
+  }
+
+  private static async open(
+    opts: LayaOptions,
+    loaded: {
+      bundle: Bundle;
+      config: LayaConfig;
+      tok: LoadedTokenizer;
+      weights: Uint8Array;
+      wasCached: boolean;
+    },
+    device: Device,
+    started: number,
+  ): Promise<Laya> {
+    const { bundle, config, tok, weights, wasCached } = loaded;
 
     opts.onProgress?.({
       phase: "session",

@@ -14,8 +14,8 @@
  *  - `laya-en-fp16` is weXare's export (tools/export_onnx.py, hosted at wexare/laya-onnx). It is
  *    dynamic in batch, sequence and option count, and checked against the Python reference.
  *  - `laya-en-q8` is an experimental 8-bit build of the same export (MatMulNBits weights), 30%
- *    smaller, for phones where the fp16 model can exhaust memory. It changed 5 of 720 answers
- *    against the PyTorch model, so it is opt-in until it has proven itself on devices.
+ *    smaller. It changed 5 of 720 answers against the PyTorch model, so it is opt-in. WASM only:
+ *    onnxruntime-web's WebGPU MatMulNBits kernel accepts 2- and 4-bit weights, not 8.
  *  - `laya-en-int8-2opt` froze the option axis at 2 during export, so it can only answer
  *    yes/no questions and two-way choices. It also uses MatMulInteger / DynamicQuantizeLinear,
  *    which silently return wrong numbers on onnxruntime-web's WebGPU backend as of 1.30
@@ -50,8 +50,8 @@ export const BUNDLES: Record<string, Bundle> = {
   },
   "laya-en-q8": {
     id: "laya-en-q8",
-    label: "Laya English · 8-bit (experimental)",
-    devices: ["webgpu", "wasm"],
+    label: "Laya English · 8-bit (experimental, WASM only)",
+    devices: ["wasm"],
     url: `${WEXARE_REPO}/laya_q8.onnx`,
     bytes: 632_942_133,
     precision:
