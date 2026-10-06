@@ -435,7 +435,8 @@ async function boot(): Promise<void> {
     BUNDLES[
       forcedBundle ?? (device === "webgpu" ? "laya-en-fp16" : "laya-en-fp16")
     ]!;
-  const phone = isPhone();
+  // the warning is about the full-size default; a smaller bundle chosen with ?bundle= is the experiment
+  const phone = isPhone() && bundle.id === "laya-en-fp16";
   setStatus(
     phone
       ? `${formatBytes(bundle.bytes)} model: phones usually run out of memory loading it. A desktop browser is recommended.`
@@ -450,7 +451,8 @@ async function boot(): Promise<void> {
       "This is unlikely to work on a phone",
       `The model is a ${formatBytes(bundle.bytes)} download, and loading it briefly needs several GB of ` +
         "memory. Phone browsers usually close the tab before it finishes (Android shows \"Aw, Snap!\"). " +
-        "Use a desktop browser; you can still try here.",
+        "Use a desktop browser; you can still try here, or try the experimental 8-bit build (633 MB): " +
+        "add ?bundle=laya-en-q8 to the address.",
     );
   } else {
     renderEmpty(
