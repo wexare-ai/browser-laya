@@ -419,6 +419,13 @@ for (const input of [stateInput, questionsInput]) {
   });
 }
 
+/** A phone or small tablet: Chromium says so directly; elsewhere fall back to the user agent. */
+function isPhone(): boolean {
+  const hint = (navigator as { userAgentData?: { mobile?: boolean } }).userAgentData?.mobile;
+  if (typeof hint === "boolean") return hint;
+  return /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 async function boot(): Promise<void> {
   if (!restoreDraft()) applyPreset(PRESETS[0]!.id);
   validate();
@@ -428,17 +435,31 @@ async function boot(): Promise<void> {
     BUNDLES[
       forcedBundle ?? (device === "webgpu" ? "laya-en-fp16" : "laya-en-fp16")
     ]!;
+  const phone = isPhone();
   setStatus(
-    `${formatBytes(bundle.bytes)} to download once, then it is cached`,
+    phone
+      ? `${formatBytes(bundle.bytes)} model: phones usually run out of memory loading it. A desktop browser is recommended.`
+      : `${formatBytes(bundle.bytes)} to download once, then it is cached`,
     [device],
   );
   loadButton.disabled = false;
-  renderEmpty(
-    readout,
-    device === "webgpu"
-      ? "Load the model to start. It runs on your GPU through WebGPU."
-      : "Load the model to start. This browser has no WebGPU, so it will run on the CPU through WebAssembly, which is slower.",
-  );
+  if (phone) {
+    // Loading peaks at several GB of memory, and phone browsers kill the tab first.
+    renderProblem(
+      readout,
+      "This is unlikely to work on a phone",
+      `The model is a ${formatBytes(bundle.bytes)} download, and loading it briefly needs several GB of ` +
+        "memory. Phone browsers usually close the tab before it finishes (Android shows \"Aw, Snap!\"). " +
+        "Use a desktop browser; you can still try here.",
+    );
+  } else {
+    renderEmpty(
+      readout,
+      device === "webgpu"
+        ? "Load the model to start. It runs on your GPU through WebGPU."
+        : "Load the model to start. This browser has no WebGPU, so it will run on the CPU through WebAssembly, which is slower.",
+    );
+  }
   colophon.innerHTML =
     `Weights: <a href="https://huggingface.co/${bundle.source}">${bundle.source}</a>, an ONNX export of ` +
     `<a href="https://huggingface.co/convaiinnovations/laya">convaiinnovations/laya</a> (Apache 2.0) by ` +
