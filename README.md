@@ -58,7 +58,11 @@ pnpm dev          # http://localhost:5173
 Click **Load model**. The first load downloads 900 MB of weights and takes about 20 seconds on a
 fast connection; after that the Cache API serves them and the model is ready in 2–3 seconds.
 
-Add `?device=wasm` to force the CPU backend, or `?bundle=<id>` to pick a specific export.
+Add `?device=wasm` to force the CPU backend, or `?bundle=<id>` to pick a specific export. On phones
+the playground picks the experimental 8-bit build (`laya-en-q8`, 633 MB, WebAssembly) on its own,
+because loading the full 900 MB model needs more memory than phone browsers give a tab; it gives
+the same answer as the full model on 99.3% of a 720-question test. `?bundle=laya-en-fp16`
+overrides it.
 
 ## Use the library
 

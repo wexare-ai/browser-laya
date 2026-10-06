@@ -3,6 +3,7 @@
  */
 import {
   BUNDLES,
+  DEFAULT_BUNDLE_FOR,
   LayaWorkerClient,
   PRESETS,
   clearCache,
@@ -19,6 +20,12 @@ const STORAGE_KEY = "laya-playground-draft";
 const params = new URLSearchParams(location.search);
 const forcedDevice = (params.get("device") as Device | null) ?? undefined;
 const forcedBundle = params.get("bundle") ?? undefined;
+/**
+ * Phones get the smaller 8-bit build: the full 900 MB model needs more memory while loading than
+ * a phone browser allows a tab. ?bundle= in the address still picks any build explicitly.
+ */
+const PHONE_BUNDLE = "laya-en-q8";
+const chosenBundle = forcedBundle ?? (isPhone() ? PHONE_BUNDLE : undefined);
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
@@ -305,7 +312,7 @@ async function load(): Promise<void> {
     client = await LayaWorkerClient.load({
       worker,
       device: forcedDevice,
-      bundle: forcedBundle,
+      bundle: chosenBundle,
       onProgress,
     });
     const {
@@ -430,37 +437,50 @@ async function boot(): Promise<void> {
   if (!restoreDraft()) applyPreset(PRESETS[0]!.id);
   validate();
 
-  const device = await pickDevice(forcedDevice);
+  const available = await pickDevice(forcedDevice);
   const bundle =
-    BUNDLES[
-      forcedBundle ?? (device === "webgpu" ? "laya-en-fp16" : "laya-en-fp16")
-    ]!;
-  // the warning is about the full-size default; a smaller bundle chosen with ?bundle= is the experiment
-  const phone = isPhone() && bundle.id === "laya-en-fp16";
+    BUNDLES[chosenBundle ?? DEFAULT_BUNDLE_FOR[available]] ??
+    BUNDLES[DEFAULT_BUNDLE_FOR[available]]!;
+  // the backend the load will really use: a WASM-only build runs on WASM even where WebGPU exists
+  const device: Device = bundle.devices.includes(available)
+    ? available
+    : bundle.devices[0]!;
+  const phone = isPhone();
+  const fullOnPhone = phone && bundle.id === "laya-en-fp16";
+
   setStatus(
-    phone
+    fullOnPhone
       ? `${formatBytes(bundle.bytes)} model: phones usually run out of memory loading it. A desktop browser is recommended.`
       : `${formatBytes(bundle.bytes)} to download once, then it is cached`,
     [device],
   );
   loadButton.disabled = false;
-  if (phone) {
+
+  const where =
+    device === "webgpu"
+      ? "It runs on your GPU through WebGPU."
+      : available === "webgpu"
+        ? "This build runs on the CPU through WebAssembly."
+        : "This browser has no WebGPU, so it will run on the CPU through WebAssembly, which is slower.";
+
+  if (fullOnPhone) {
     // Loading peaks at several GB of memory, and phone browsers kill the tab first.
     renderProblem(
       readout,
       "This is unlikely to work on a phone",
-      `The model is a ${formatBytes(bundle.bytes)} download, and loading it briefly needs several GB of ` +
+      `The full model is a ${formatBytes(bundle.bytes)} download, and loading it briefly needs several GB of ` +
         "memory. Phone browsers usually close the tab before it finishes (Android shows \"Aw, Snap!\"). " +
-        "Use a desktop browser; you can still try here, or try the experimental 8-bit build (633 MB): " +
-        "add ?bundle=laya-en-q8 to the address.",
+        `Remove ?bundle= from the address to use the smaller build this page picks for phones.`,
     );
-  } else {
+  } else if (phone && bundle.id === PHONE_BUNDLE) {
     renderEmpty(
       readout,
-      device === "webgpu"
-        ? "Load the model to start. It runs on your GPU through WebGPU."
-        : "Load the model to start. This browser has no WebGPU, so it will run on the CPU through WebAssembly, which is slower.",
+      `On phones this page loads the smaller 8-bit build (${formatBytes(bundle.bytes)}), which is more likely to ` +
+        `fit in a phone browser's memory than the full ${formatBytes(BUNDLES["laya-en-fp16"]!.bytes)} model. ` +
+        `It gives the same answer as the full model 99.3% of the time. ${where}`,
     );
+  } else {
+    renderEmpty(readout, `Load the model to start. ${where}`);
   }
   colophon.innerHTML =
     `Weights: <a href="https://huggingface.co/${bundle.source}">${bundle.source}</a>, an ONNX export of ` +
