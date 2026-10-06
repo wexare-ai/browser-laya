@@ -92,6 +92,39 @@ body {
   font-weight: 400;
 }
 
+.rail-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.rail-link:hover,
+.rail-link:focus-visible {
+  color: var(--ink);
+  text-decoration: underline;
+}
+@media (max-width: 600px) {
+  /* status gets its own row under the wordmark and actions; the link shrinks to its icon */
+  .rail {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rail-status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .rail-link span {
+    display: none;
+  }
+}
 .rail-status {
   display: flex;
   flex-wrap: wrap;
