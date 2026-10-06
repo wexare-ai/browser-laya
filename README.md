@@ -1,4 +1,4 @@
-# Laya in the browser
+# System One in the browser
 
 [![npm](https://img.shields.io/npm/v/@wexare/laya-web)](https://www.npmjs.com/package/@wexare/laya-web)
 [![CI](https://github.com/wexare-ai/browser-laya/actions/workflows/publish.yml/badge.svg)](https://github.com/wexare-ai/browser-laya/actions/workflows/publish.yml)
